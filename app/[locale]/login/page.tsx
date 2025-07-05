@@ -90,7 +90,6 @@ export default async function Login({
     return process.env[name]
   }
 
-  const signUp = async (formData: FormData) => {
     "use server"
 
     const email = formData.get("email") as string
