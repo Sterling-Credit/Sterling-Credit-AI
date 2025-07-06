@@ -9,7 +9,11 @@ interface BrandProps {
 }
 
 export const Brand: FC<BrandProps> = ({ theme = "dark" }) => {
-  return (  
-      <div className="text-4xl font-bold tracking-wide">Sterling Credit AI</div>
-  )
-}
+ return (
+    <div className="w-full flex justify-center">
+      <div className="text-4xl font-bold tracking-wide text-center">
+        Sterling Credit AI
+      </div>
+    </div>
+  );
+};
