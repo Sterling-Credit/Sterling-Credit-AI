@@ -31,6 +31,7 @@ export const metadata: Metadata = {
     template: APP_TITLE_TEMPLATE
   },
   description: APP_DESCRIPTION,
+  metadataBase: new URL("https://sterlingopulencefinancial.com"),
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
