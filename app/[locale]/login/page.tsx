@@ -17,11 +17,10 @@ export const metadata: Metadata = {
 export default async function Login({
   searchParams,
 }: {
-  searchParams: { message?: string };
+  searchParams?: { message?: string };
 }) {
   const cookieStore = cookies();
 
-  // Check if user already has an active session
   const supabase = createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -45,14 +44,73 @@ export default async function Login({
       .single();
 
     if (!homeWorkspace) {
-      // No workspace yet → send them to billing
-      return redirect("/billing");
+      throw new Error(error?.message || "Could not load workspace");
     }
 
     return redirect(`/${homeWorkspace.id}/chat`);
   }
 
-  // If user NOT signed in, show login form
+  const getEnvVarOrEdgeConfigValue = async (name: string) => {
+    "use server";
+
+    if (process.env.EDGE_CONFIG) {
+      return await get<string>(name);
+    }
+
+    return process.env[name];
+  };
+
+  const signIn = async (formData: FormData) => {
+    "use server";
+
+    const email = formData.get("email") as string;
+    const password = formData.get("password") as string;
+    const cookieStore = cookies();
+    const supabase = createClient(cookieStore);
+
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) {
+      return redirect(`/login?message=${error.message}`);
+    }
+
+    const { data: homeWorkspace, error: homeWorkspaceError } =
+      await supabase
+        .from("workspaces")
+        .select("*")
+        .eq("user_id", data.user.id)
+        .eq("is_home", true)
+        .maybeSingle();
+
+    if (!homeWorkspace) {
+      return redirect("/billing");
+    }
+
+    return redirect(`/${homeWorkspace.id}/chat`);
+  };
+
+  const handleResetPassword = async (formData: FormData) => {
+    "use server";
+
+    const origin = headers().get("origin");
+    const email = formData.get("email") as string;
+    const cookieStore = cookies();
+    const supabase = createClient(cookieStore);
+
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${origin}/auth/callback?next=/login/password`,
+    });
+
+    if (error) {
+      return redirect(`/login?message=${error.message}`);
+    }
+
+    return redirect("/login?message=Check email to reset password");
+  };
+
   return (
     <div className="flex w-full flex-1 flex-col justify-center gap-2 px-8 sm:max-w-md">
       <form
@@ -84,7 +142,6 @@ export default async function Login({
         <SubmitButton className="mb-2 rounded-md bg-blue-700 px-4 py-2 text-white">
           Login
         </SubmitButton>
-
         <div className="text-muted-foreground mt-1 flex justify-center text-sm">
           <span className="mr-1">Forgot your password?</span>
           <button
@@ -104,69 +161,3 @@ export default async function Login({
     </div>
   );
 }
-
-// ------------------------
-// ✅ SERVER ACTIONS BELOW
-// ------------------------
-
-const signIn = async (formData: FormData) => {
-  "use server";
-
-  const email = formData.get("email") as string;
-  const password = formData.get("password") as string;
-  const cookieStore = cookies();
-  const supabase = createClient(cookieStore);
-
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  });
-
-  if (error) {
-    return redirect(`/login?message=${error.message}`);
-  }
-
-  // Check if the user has a workspace
-  const { data: homeWorkspace, error: homeWorkspaceError } = await supabase
-    .from("workspaces")
-    .select("*")
-    .eq("user_id", data.user.id)
-    .eq("is_home", true)
-    .maybeSingle();
-
-  if (!homeWorkspace) {
-    // Send user to billing if no workspace
-    return redirect("/billing");
-  }
-
-  return redirect(`/${homeWorkspace.id}/chat`);
-};
-
-const handleResetPassword = async (formData: FormData) => {
-  "use server";
-
-  const origin = headers().get("origin");
-  const email = formData.get("email") as string;
-  const cookieStore = cookies();
-  const supabase = createClient(cookieStore);
-
-  const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${origin}/auth/callback?next=/login/password`,
-  });
-
-  if (error) {
-    return redirect(`/login?message=${error.message}`);
-  }
-
-  return redirect("/login?message=Check email to reset password");
-};
-
-export const getEnvVarOrEdgeConfigValue = async (name: string) => {
-  "use server";
-
-  if (process.env.EDGE_CONFIG) {
-    return await get<string>(name);
-  }
-
-  return process.env[name];
-};
