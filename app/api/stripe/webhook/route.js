@@ -3,10 +3,10 @@ import { headers } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 
-export const runtime = "nodejs";
+export const runtime = 'nodejs';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: "2023-10-16",
+  apiVersion: '2023-10-16',
 });
 
 export async function POST(req) {
@@ -25,28 +25,4 @@ export async function POST(req) {
     console.log('Webhook signature verification failed.', err.message);
     return NextResponse.json({ error: err.message }, { status: 400 });
   }
-
-  if (event.type === 'checkout.session.completed') {
-    const session = event.data.object;
-
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-    );
-
-    const { error } = await supabase
-      .from('workspaces')
-      .insert({
-        user_id: session.customer,
-        name: 'New Workspace',
-        is_home: true
-      });
-
-    if (error) {
-      console.error('Supabase insert error:', error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
-  }
-
-  return NextResponse.json({ received: true });
 }
