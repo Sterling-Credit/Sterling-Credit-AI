@@ -1,6 +1,11 @@
 import Stripe from "stripe";
+import { NextResponse } from "next/server";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+export const runtime = "nodejs";
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+  apiVersion: "2023-10-16",
+});
 
 export async function POST(req) {
   try {
@@ -9,7 +14,7 @@ export async function POST(req) {
       mode: "subscription",
       line_items: [
         {
-          price:"price_1RioIzE3AxMkGgmEzIFNi50w", // replace this!
+          price: "price_1RioIzE3AxMkGgmEzIFNi50w", // replace if needed
           quantity: 1,
         },
       ],
@@ -17,10 +22,11 @@ export async function POST(req) {
       cancel_url: "https://sterlingopulencefinancial.com/cancel",
     });
 
-    return Response.json({ url: session.url });
+    return NextResponse.json({ url: session.url });
   } catch (err) {
-    return new Response(
-      JSON.stringify({ error: err.message }),
+    console.error(err);
+    return NextResponse.json(
+      { error: err.message },
       { status: 500 }
     );
   }
