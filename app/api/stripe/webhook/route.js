@@ -3,7 +3,12 @@ import { headers } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+// Tell Next.js to use Node.js runtime (not Edge)
+export const runtime = "nodejs";
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+  apiVersion: '2023-10-16' // change to your Stripe API version
+});
 
 export async function POST(req) {
   const body = await req.text();
@@ -22,17 +27,20 @@ export async function POST(req) {
     return NextResponse.json({ error: err.message }, { status: 400 });
   }
 
-  // Handle the checkout.session.completed event
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object;
 
-    const supabase = createServerClient();
+    // ✅ FIX: Add your Supabase credentials here
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    );
 
     // 👇 Create workspace record
     const { error } = await supabase
       .from('workspaces')
       .insert({
-        user_id: session.customer,   // adjust if using email or other identifiers
+        user_id: session.customer,
         name: 'New Workspace',
         is_home: true
       });
