@@ -64,7 +64,11 @@ export default async function Login({
     if (error) {
       return redirect(`/login?message=${error.message}`)
     }
-
+// ✅ FIX: Save the session in cookies
+  await supabase.auth.setSession({
+    access_token: data.session.access_token,
+    refresh_token: data.session.refresh_token,
+  })
     const { data: homeWorkspace, error: homeWorkspaceError } = await supabase
       .from("workspaces")
       .select("*")
