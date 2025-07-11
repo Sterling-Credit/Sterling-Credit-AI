@@ -3,11 +3,10 @@ import { headers } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 
-// Tell Next.js to use Node.js runtime (not Edge)
 export const runtime = "nodejs";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: '2023-10-16' // change to your Stripe API version
+  apiVersion: "2023-10-16",
 });
 
 export async function POST(req) {
@@ -30,13 +29,11 @@ export async function POST(req) {
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object;
 
-    // ✅ FIX: Add your Supabase credentials here
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
     );
 
-    // 👇 Create workspace record
     const { error } = await supabase
       .from('workspaces')
       .insert({
