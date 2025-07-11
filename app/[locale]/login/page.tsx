@@ -48,48 +48,43 @@ export default async function Login({
     return redirect(`/${homeWorkspace.id}/chat`)
   }
 
-  const signIn = async (formData: FormData) => {
-    "use server"
-
-    const email = formData.get("email") as string
-    const password = formData.get("password") as string
-    const cookieStore = cookies()
-    const supabase = createClient(cookieStore)
-
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password
-    })
-
-    if (error) {
-      return redirect(`/login?message=${error.message}`)
-    }
-// ✅ FIX: Save the session in cookies
-  await supabase.auth.setSession({
-    access_token: data.session.access_token,
-    refresh_token: data.session.refresh_token,
-  })
-    const { data: homeWorkspace, error: homeWorkspaceError } = await supabase
-      .from("workspaces")
-      .select("*")
-      .eq("user_id", data.user.id)
-      .eq("is_home", true)
-      .maybeSingle()
-
-    if (!homeWorkspace) {
-      throw new Error(
-        homeWorkspaceError?.message || "An unexpected error occurred"
-      )
-    }
-
-    return redirect(`/${homeWorkspace.id}/chat`)
-  }
-
+ 
   const getEnvVarOrEdgeConfigValue = async (name: string) => {
     "use server"
     if (process.env.EDGE_CONFIG) {
       return await get<string>(name)
     }
+const signIn = async (formData: FormData) => {
+  "use server";
+
+  const email = formData.get("email") as string;
+  const password = formData.get("password") as string;
+  const cookieStore = cookies();
+  const supabase = createClient(cookieStore);
+
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
+
+  if (error) {
+    return redirect(`/login?message=${error.message}`);
+  }
+
+  const { data: homeWorkspace, error: homeWorkspaceError } = await supabase
+    .from("workspaces")
+    .select("*")
+    .eq("user_id", data.user.id)
+    .eq("is_home", true)
+    .maybeSingle();
+
+  if (!homeWorkspace) {
+    // Send unpaid users to billing page
+    return redirect("/billing");
+  }
+
+  return redirect(`/${homeWorkspace.id}/chat`);
+};
 
     return process.env[name]
   }
