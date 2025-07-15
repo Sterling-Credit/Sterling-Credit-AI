@@ -77,6 +77,11 @@ export default async function Login({
       return redirect(`/login?message=${error.message}`);
     }
 
+    await supabase.auth.setSession({
+  access_token: data.session.access_token,
+  refresh_token: data.session.refresh_token,
+});
+
     const { data: homeWorkspace, error: homeWorkspaceError } =
       await supabase
         .from("workspaces")
