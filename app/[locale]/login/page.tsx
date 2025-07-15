@@ -1,3 +1,5 @@
+"use server";
+
 import { Brand } from "@/components/ui/brand";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,7 +19,7 @@ export const metadata: Metadata = {
 export default async function Login({
   searchParams,
 }: {
-  searchParams?: { message?: string };
+  searchParams: { message?: string };
 }) {
   const cookieStore = cookies();
 
@@ -41,24 +43,14 @@ export default async function Login({
       .select("*")
       .eq("user_id", session.user.id)
       .eq("is_home", true)
-      .single();
+      .maybeSingle();
 
     if (!homeWorkspace) {
-      throw new Error(error?.message || "Could not load workspace");
+      return redirect("/billing");
     }
 
     return redirect(`/${homeWorkspace.id}/chat`);
   }
-
-  const getEnvVarOrEdgeConfigValue = async (name: string) => {
-    "use server";
-
-    if (process.env.EDGE_CONFIG) {
-      return await get<string>(name);
-    }
-
-    return process.env[name];
-  };
 
   const signIn = async (formData: FormData) => {
     "use server";
@@ -77,10 +69,11 @@ export default async function Login({
       return redirect(`/login?message=${error.message}`);
     }
 
+    // ✅ Save the session so Supabase can persist it
     await supabase.auth.setSession({
-  access_token: data.session.access_token,
-  refresh_token: data.session.refresh_token,
-});
+      access_token: data.session.access_token,
+      refresh_token: data.session.refresh_token,
+    });
 
     const { data: homeWorkspace, error: homeWorkspaceError } =
       await supabase
