@@ -1,4 +1,3 @@
-use server";
 import { Brand } from "@/components/ui/brand";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
